@@ -92,26 +92,26 @@ campaign_tier_val = {'single_touch': 0, 'standard_followup': 1, 'high_intensity'
 
 # Education Maps
 edu_group_map = {
-    'basic.4y': 'primary', 'basic.6y': 'primary', 'basic.9y': 'primary',
-    'high.school': 'secondary', 'professional.course': 'tertiary',
-    'university.degree': 'graduation', 'illiterate': 'illiterate', 'unknown': 'unknown'
+    'Basic 4y': 'primary', 'Basic 6y': 'primary', 'Basic 9y': 'primary',
+    'High school': 'secondary', 'Professional Course': 'tertiary',
+    'University Degree': 'graduation', 'illiterate': 'illiterate', 'unknown': 'unknown'
 }
 edu_ordinal_map = {'illiterate': 0, 'primary': 1, 'secondary': 2, 'unknown': 2, 'graduation': 3, 'tertiary': 4}
 education_val = edu_ordinal_map[edu_group_map[raw_education]]
 
 # Job Mapping
 job_group_map = {
-    'admin.': 'white_collar', 'management': 'white_collar', 'entrepreneur': 'white_collar', 'self-employed': 'white_collar',
-    'technician': 'blue_collar', 'blue-collar': 'blue_collar', 'services': 'blue_collar', 'housemaid': 'blue_collar',
-    'retired': 'not_working', 'student': 'not_working', 'unemployed': 'not_working', 'unknown': 'not_working'
+    'Admin.': 'white_collar', 'Management': 'white_collar', 'Entrepreneur': 'white_collar', 'Self-employed': 'white_collar',
+    'Technician': 'blue_collar', 'Blue-collar': 'blue_collar', 'Services': 'blue_collar', 'Housemaid': 'blue_collar',
+    'Retired': 'not_working', 'Student': 'not_working', 'Unemployed': 'not_working', 'unknown': 'not_working'
 }
 job_group_val = job_group_map[raw_job]
 
 # Month Tier Mapping
 month_tier_map = {
-    'may': 'high_vol_month', 'jul': 'high_vol_month', 'aug': 'mid_vol_month',
-    'jun': 'mid_vol_month', 'nov': 'mid_vol_month', 'apr': 'mid_vol_month',
-    'oct': 'low_vol_month', 'sep': 'low_vol_month', 'mar': 'low_vol_month', 'dec': 'low_vol_month'
+    'May': 'high_vol_month', 'Jul': 'high_vol_month', 'Aug': 'mid_vol_month',
+    'Jun': 'mid_vol_month', 'Nov': 'mid_vol_month', 'Apr': 'mid_vol_month',
+    'Oct': 'low_vol_month', 'Sep': 'low_vol_month', 'Mar': 'low_vol_month', 'Dec': 'low_vol_month'
 }
 month_tier_val = month_tier_map[raw_month]
 
