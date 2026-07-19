@@ -26,19 +26,19 @@ with col1:
     raw_age = st.number_input("Age (Years)", min_value=17, max_value=120, value=35, step=1)
     
     raw_job = st.selectbox("Occupation (Job Type)", options=[
-        'admin.', 'blue-collar', 'technician', 'services', 'management', 
-        'retired', 'entrepreneur', 'self-employed', 'housemaid', 'unemployed', 'student', 'unknown'
+        'Admin', 'Blue-collar', 'Technician', 'Services', 'Management', 
+        'Retired', 'Entrepreneur', 'Self-employed', 'Housemaid', 'Unemployed', 'Student', 'unknown'
     ])
     
-    raw_marital = st.selectbox("Marital Status", options=['married', 'single', 'divorced', 'unknown'])
+    raw_marital = st.selectbox("Marital Status", options=['Married', 'Single', 'Divorced', 'unknown'])
 
 with col2:
     raw_education = st.selectbox("Education Level", options=[
-        'university.degree', 'high.school', 'professional.course', 
-        'basic.9y', 'basic.4y', 'basic.6y', 'unknown', 'illiterate'
+        'University Degree', 'High School', 'Professional Course', 
+        'Basic 9y', 'basic 4y', 'basic 6y', 'unknown', 'illiterate'
     ])
     
-    raw_default = st.selectbox("Has Credit in Default?", options=['no', 'yes', 'unknown'])
+    raw_default = st.selectbox("Has Credit in Default?", options=['No', 'Yes', 'unknown'])
 
 st.header("📞 Campaign Engagement Details")
 col3, col4 = col4, col3 = st.columns(2)
@@ -53,16 +53,16 @@ with col4:
     if raw_pdays == -1:
         raw_pdays = 999
 
-    raw_contact = st.selectbox("Contact Communication Channel", options=['cellular', 'telephone'])
+    raw_contact = st.selectbox("Contact Communication Channel", options=['Cellular', 'Telephone'])
 
 st.header("📅 Timing Variables")
 col5, col6 = st.columns(2)
 
 with col5:
-    raw_month = st.selectbox("Last Contact Month", options=['may', 'jul', 'aug', 'jun', 'nov', 'apr', 'oct', 'sep', 'mar', 'dec'])
+    raw_month = st.selectbox("Last Contact Month", options=['May', 'Jul', 'Aug', 'Jun', 'Nov', 'Apr', 'Oct', 'Sep', 'Mar', 'Dec'])
 
 with col6:
-    raw_day_of_week = st.selectbox("Last Contact Day of the Week", options=['mon', 'tue', 'wed', 'thu', 'fri'])
+    raw_day_of_week = st.selectbox("Last Contact Day of the Week", options=['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
 
 # 3. Macroeconomic Settings (Hidden inside an expander with preset standard dataset averages)
 with st.expander("📊 Advanced Macroeconomic Indicators (Auto-Calculated Defaults)"):
