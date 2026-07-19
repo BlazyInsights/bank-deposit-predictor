@@ -1,4 +1,3 @@
-
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -25,23 +24,32 @@ col1, col2 = st.columns(2)
 with col1:
     raw_age = st.number_input("Age (Years)", min_value=17, max_value=120, value=35, step=1)
     
+    # We display clean titles, but we save lowercased versions internally
     raw_job = st.selectbox("Occupation (Job Type)", options=[
         'Admin', 'Blue-collar', 'Technician', 'Services', 'Management', 
         'Retired', 'Entrepreneur', 'Self-employed', 'Housemaid', 'Unemployed', 'Student', 'unknown'
-    ])
+    ]).lower()
+    if raw_job == 'admin': raw_job = 'admin.' # Append the trailing dot required by the raw dataset
     
-    raw_marital = st.selectbox("Marital Status", options=['Married', 'Single', 'Divorced', 'unknown'])
+    raw_marital = st.selectbox("Marital Status", options=['Married', 'Single', 'Divorced', 'unknown']).lower()
 
 with col2:
-    raw_education = st.selectbox("Education Level", options=[
+    # We use mapping to capture custom raw names exactly as required by edu_group_map
+    edu_display = st.selectbox("Education Level", options=[
         'University Degree', 'High School', 'Professional Course', 
-        'Basic 9y', 'basic 4y', 'basic 6y', 'unknown', 'illiterate'
+        'Basic 9y', 'Basic 4y', 'Basic 6y', 'unknown', 'illiterate'
     ])
+    edu_ui_map = {
+        'University Degree': 'university.degree', 'High School': 'high.school',
+        'Professional Course': 'professional.course', 'Basic 9y': 'basic.9y',
+        'Basic 4y': 'basic.4y', 'Basic 6y': 'basic.6y', 'unknown': 'unknown', 'illiterate': 'illiterate'
+    }
+    raw_education = edu_ui_map[edu_display]
     
-    raw_default = st.selectbox("Has Credit in Default?", options=['No', 'Yes', 'unknown'])
+    raw_default = st.selectbox("Has Credit in Default?", options=['No', 'Yes', 'unknown']).lower()
 
 st.header("📞 Campaign Engagement Details")
-col3, col4 = col4, col3 = st.columns(2)
+col3, col4 = st.columns(2)
 
 with col3:
     raw_campaign = st.number_input("Number of Contacts in Current Campaign", min_value=1, max_value=100, value=1, step=1)
@@ -49,20 +57,19 @@ with col3:
 
 with col4:
     raw_pdays = st.number_input("Days Since Last Contact (-1 or 999 if Never Contacted)", min_value=-1, max_value=999, value=999, step=1)
-    # Map raw pdays behavior back to match your 999 filter condition rules
     if raw_pdays == -1:
         raw_pdays = 999
 
-    raw_contact = st.selectbox("Contact Communication Channel", options=['Cellular', 'Telephone'])
+    raw_contact = st.selectbox("Contact Communication Channel", options=['Cellular', 'Telephone']).lower()
 
 st.header("📅 Timing Variables")
 col5, col6 = st.columns(2)
 
 with col5:
-    raw_month = st.selectbox("Last Contact Month", options=['May', 'Jul', 'Aug', 'Jun', 'Nov', 'Apr', 'Oct', 'Sep', 'Mar', 'Dec'])
+    raw_month = st.selectbox("Last Contact Month", options=['May', 'Jul', 'Aug', 'Jun', 'Nov', 'Apr', 'Oct', 'Sep', 'Mar', 'Dec']).lower()
 
 with col6:
-    raw_day_of_week = st.selectbox("Last Contact Day of the Week", options=['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
+    raw_day_of_week = st.selectbox("Last Contact Day of the Week", options=['Mon', 'Tue', 'Wed', 'Thu', 'Fri']).lower()
 
 # 3. Macroeconomic Settings (Hidden inside an expander with preset standard dataset averages)
 with st.expander("📊 Advanced Macroeconomic Indicators (Auto-Calculated Defaults)"):
@@ -75,7 +82,6 @@ with st.expander("📊 Advanced Macroeconomic Indicators (Auto-Calculated Defaul
 
 # ==================== INTERNAL DATA PROCESSING & TRANSFORMATIONS ====================
 
-# A. Handle Custom Binning & Ordinal Mappings from your Training Script
 # Age Bins -> Mapped
 if raw_age <= 20: age_group_str = 'teenager'
 elif raw_age <= 35: age_group_str = 'young_adult'
@@ -90,28 +96,28 @@ elif raw_campaign <= 10: campaign_tier_str = 'high_intensity'
 else: campaign_tier_str = 'extreme_outlier'
 campaign_tier_val = {'single_touch': 0, 'standard_followup': 1, 'high_intensity': 2, 'extreme_outlier': 3}[campaign_tier_str]
 
-# Education Maps
+# Education Maps (Fully converted values matching lowercase raw syntax strings)
 edu_group_map = {
-    'Basic 4y': 'primary', 'Basic 6y': 'primary', 'Basic 9y': 'primary',
-    'High school': 'secondary', 'Professional Course': 'tertiary',
-    'University Degree': 'graduation', 'illiterate': 'illiterate', 'unknown': 'unknown'
+    'basic.4y': 'primary', 'basic.6y': 'primary', 'basic.9y': 'primary',
+    'high.school': 'secondary', 'professional.course': 'tertiary',
+    'university.degree': 'graduation', 'illiterate': 'illiterate', 'unknown': 'unknown'
 }
 edu_ordinal_map = {'illiterate': 0, 'primary': 1, 'secondary': 2, 'unknown': 2, 'graduation': 3, 'tertiary': 4}
 education_val = edu_ordinal_map[edu_group_map[raw_education]]
 
 # Job Mapping
 job_group_map = {
-    'Admin': 'white_collar', 'Management': 'white_collar', 'Entrepreneur': 'white_collar', 'Self-employed': 'white_collar',
-    'Technician': 'blue_collar', 'Blue-collar': 'blue_collar', 'Services': 'blue_collar', 'Housemaid': 'blue_collar',
-    'Retired': 'not_working', 'Student': 'not_working', 'Unemployed': 'not_working', 'unknown': 'not_working'
+    'admin.': 'white_collar', 'management': 'white_collar', 'entrepreneur': 'white_collar', 'self-employed': 'white_collar',
+    'technician': 'blue_collar', 'blue-collar': 'blue_collar', 'services': 'blue_collar', 'housemaid': 'blue_collar',
+    'retired': 'not_working', 'student': 'not_working', 'unemployed': 'not_working', 'unknown': 'not_working'
 }
 job_group_val = job_group_map[raw_job]
 
 # Month Tier Mapping
 month_tier_map = {
-    'May': 'high_vol_month', 'Jul': 'high_vol_month', 'Aug': 'mid_vol_month',
-    'Jun': 'mid_vol_month', 'Nov': 'mid_vol_month', 'Apr': 'mid_vol_month',
-    'Oct': 'low_vol_month', 'Sep': 'low_vol_month', 'Mar': 'low_vol_month', 'Dec': 'low_vol_month'
+    'may': 'high_vol_month', 'jul': 'high_vol_month', 'aug': 'mid_vol_month',
+    'jun': 'mid_vol_month', 'nov': 'mid_vol_month', 'apr': 'mid_vol_month',
+    'oct': 'low_vol_month', 'sep': 'low_vol_month', 'mar': 'low_vol_month', 'dec': 'low_vol_month'
 }
 month_tier_val = month_tier_map[raw_month]
 
@@ -134,20 +140,20 @@ processed_features = {
     'nr.employed': float(nr_employed)
 }
 
-# C. Apply Hardcoded StandardScaler values (Extracted from the standard full training dataset distributions)
+# C. Apply Hardcoded StandardScaler values
 scaler_stats = {
     'emp.var.rate': {'mean': 0.081886, 'std': 1.570960},
     'cons.price.idx': {'mean': 93.575664, 'std': 0.578840},
     'cons.conf.idx': {'mean': -40.502600, 'std': 4.628198},
     'euribor3m': {'mean': 3.621291, 'std': 1.734447},
     'nr.employed': {'mean': 5167.035911, 'std': 72.251528},
-    'pdays_cleaned': {'mean': 0.221200, 'std': 1.378900} # Extracted standard cleaning variance
+    'pdays_cleaned': {'mean': 0.221200, 'std': 1.378900}
 }
 
 for col in scaler_stats:
     processed_features[col] = (processed_features[col] - scaler_stats[col]['mean']) / scaler_stats[col]['std']
 
-# D. Reconstruct the exact Nominal One-Hot Encoded features generated via pd.get_dummies()
+# D. Reconstruct Nominals (Forced perfectly lowercase to align with features.json dummy targets)
 nominal_selections = {
     f"marital_{raw_marital}": 1,
     f"default_{raw_default}": 1,
@@ -179,7 +185,6 @@ def load_xgb_model():
 xgb_engine = load_xgb_model()
 
 if st.button("Calculate Subscription Probability", type="primary"):
-    # Ensure correct matching column evaluation alignment
     df_input = df_input[feature_names]
     dmatrix_input = xgb.DMatrix(df_input)
     raw_probability = float(xgb_engine.predict(dmatrix_input)[0])
