@@ -24,17 +24,15 @@ col1, col2 = st.columns(2)
 with col1:
     raw_age = st.number_input("Age (Years)", min_value=17, max_value=120, value=35, step=1)
     
-    # We display clean titles, but we save lowercased versions internally
     raw_job = st.selectbox("Occupation (Job Type)", options=[
         'Admin', 'Blue-collar', 'Technician', 'Services', 'Management', 
         'Retired', 'Entrepreneur', 'Self-employed', 'Housemaid', 'Unemployed', 'Student', 'unknown'
     ]).lower()
-    if raw_job == 'admin': raw_job = 'admin.' # Append the trailing dot required by the raw dataset
+    if raw_job == 'admin': raw_job = 'admin.' 
     
     raw_marital = st.selectbox("Marital Status", options=['Married', 'Single', 'Divorced', 'unknown']).lower()
 
 with col2:
-    # We use mapping to capture custom raw names exactly as required by edu_group_map
     edu_display = st.selectbox("Education Level", options=[
         'University Degree', 'High School', 'Professional Course', 
         'Basic 9y', 'Basic 4y', 'Basic 6y', 'unknown', 'illiterate'
@@ -54,6 +52,15 @@ col3, col4 = st.columns(2)
 with col3:
     raw_campaign = st.number_input("Number of Contacts in Current Campaign", min_value=1, max_value=100, value=1, step=1)
     raw_previous = st.number_input("Number of Contacts Before This Campaign", min_value=0, max_value=10, value=0, step=1)
+    
+    # 🆕 ADDED: Previous Campaign Outcome Input Field
+    poutcome_display = st.selectbox("Outcome of Previous Marketing Campaign", options=['Non-existent / Never Contacted', 'Failure', 'Success'])
+    poutcome_ui_map = {
+        'Non-existent / Never Contacted': 'nonexistent',
+        'Failure': 'failure',
+        'Success': 'success'
+    }
+    raw_poutcome = poutcome_ui_map[poutcome_display]
 
 with col4:
     raw_pdays = st.number_input("Days Since Last Contact (-1 or 999 if Never Contacted)", min_value=-1, max_value=999, value=999, step=1)
@@ -71,7 +78,7 @@ with col5:
 with col6:
     raw_day_of_week = st.selectbox("Last Contact Day of the Week", options=['Mon', 'Tue', 'Wed', 'Thu', 'Fri']).lower()
 
-# 3. Macroeconomic Settings (Hidden inside an expander with preset standard dataset averages)
+# 3. Macroeconomic Settings
 with st.expander("📊 Advanced Macroeconomic Indicators (Auto-Calculated Defaults)"):
     st.caption("These context indicators default to historical averages from the dataset so users don't have to provide them manually.")
     emp_var_rate = st.number_input("Employment Variation Rate (Quarterly)", value=0.08)
@@ -96,7 +103,7 @@ elif raw_campaign <= 10: campaign_tier_str = 'high_intensity'
 else: campaign_tier_str = 'extreme_outlier'
 campaign_tier_val = {'single_touch': 0, 'standard_followup': 1, 'high_intensity': 2, 'extreme_outlier': 3}[campaign_tier_str]
 
-# Education Maps (Fully converted values matching lowercase raw syntax strings)
+# Education Maps
 edu_group_map = {
     'basic.4y': 'primary', 'basic.6y': 'primary', 'basic.9y': 'primary',
     'high.school': 'secondary', 'professional.course': 'tertiary',
@@ -153,14 +160,15 @@ scaler_stats = {
 for col in scaler_stats:
     processed_features[col] = (processed_features[col] - scaler_stats[col]['mean']) / scaler_stats[col]['std']
 
-# D. Reconstruct Nominals (Forced perfectly lowercase to align with features.json dummy targets)
+# D. Reconstruct Nominals (Includes the newly added raw_poutcome variable mapping string)
 nominal_selections = {
     f"marital_{raw_marital}": 1,
     f"default_{raw_default}": 1,
     f"contact_{raw_contact}": 1,
     f"day_of_week_{raw_day_of_week}": 1,
     f"month_tier_{month_tier_val}": 1,
-    f"job_group_{job_group_val}": 1
+    f"job_group_{job_group_val}": 1,
+    f"poutcome_{raw_poutcome}": 1
 }
 
 # Combine and construct input row matching alignment array order
@@ -192,7 +200,10 @@ if st.button("Calculate Subscription Probability", type="primary"):
     st.subheader("Prediction Result")
     st.metric(label="Calculated Probability of Term Deposit Signup", value=f"{raw_probability * 100:.2f}%")
 
+    # 🆕 UPDATED: Priority logic breaking options into 3 distinct brackets
     if raw_probability >= 0.55:
         st.success("🎯 **High Priority Prospect:** High conversion profile. Route immediately to active outbound call agents.")
+    elif raw_probability >= 0.35:
+        st.info("⚡ **Medium Priority Prospect:** Solid intent signals. Place into accelerated warm-email and SMS campaign cadences.")
     else:
         st.warning("💤 **Low Priority Prospect:** Keep in nurture flow via automated low-cost channel campaigns.")
