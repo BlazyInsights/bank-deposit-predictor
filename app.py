@@ -101,7 +101,7 @@ education_val = edu_ordinal_map[edu_group_map[raw_education]]
 
 # Job Mapping
 job_group_map = {
-    'Admin.': 'white_collar', 'Management': 'white_collar', 'Entrepreneur': 'white_collar', 'Self-employed': 'white_collar',
+    'Admin': 'white_collar', 'Management': 'white_collar', 'Entrepreneur': 'white_collar', 'Self-employed': 'white_collar',
     'Technician': 'blue_collar', 'Blue-collar': 'blue_collar', 'Services': 'blue_collar', 'Housemaid': 'blue_collar',
     'Retired': 'not_working', 'Student': 'not_working', 'Unemployed': 'not_working', 'unknown': 'not_working'
 }
