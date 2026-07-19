@@ -1,3 +1,4 @@
+%%writefile app.py
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -7,72 +8,168 @@ import xgboost as xgb
 st.set_page_config(page_title="Bank Term Deposit Predictor", layout="centered")
 
 st.title("🏦 Term Deposit Conversion Predictor")
-st.markdown("Input a customer's specific campaign and economic metrics to calculate their real-time conversion probability.")
+st.markdown("Enter the customer's raw profile details to calculate their real-time subscription probability.")
 
-# 1. Safely load the feature configuration list
+# 1. Safely load the feature configuration list to guarantee structural alignment
 try:
     with open("features.json", "r") as f:
         feature_names = json.load(f)
 except FileNotFoundError:
-    st.error("Missing 'features.json' file! Please place it in the same directory.")
+    st.error("Missing 'features.json' file! Please ensure it is generated in your workspace.")
     st.stop()
 
-# 2. Create the Layout Form for Feature Inputs
-st.header("👤 Customer Profile & Campaign Features")
-
+# 2. Main Raw Intake Form Layout
+st.header("👤 Customer Demographics & Profile")
 col1, col2 = st.columns(2)
 
 with col1:
-    age_group = st.slider("Age Group Code (Scaled/Binned Value)", 0.0, 5.0, 2.0, 0.1)
-    education = st.slider("Education Level Code", 0.0, 4.0, 2.0, 0.1)
-    previous = st.number_input("Previous Contacts in this Campaign", min_value=0, max_value=10, value=0)
-    pdays_cleaned = st.number_input("Days since last contact (Cleaned)", min_value=0, max_value=999, value=999)
+    raw_age = st.number_input("Age (Years)", min_value=17, max_value=120, value=35, step=1)
+    
+    raw_job = st.selectbox("Occupation (Job Type)", options=[
+        'admin.', 'blue-collar', 'technician', 'services', 'management', 
+        'retired', 'entrepreneur', 'self-employed', 'housemaid', 'unemployed', 'student', 'unknown'
+    ])
+    
+    raw_marital = st.selectbox("Marital Status", options=['married', 'single', 'divorced', 'unknown'])
 
 with col2:
-    # Quick fix: st.sidebar changed to st normal column slider to keep layout neat
-    euribor3m = st.slider("Euribor 3-Month Interest Rate", 0.5, 6.0, 3.2, 0.1)
-    nr_employed = st.number_input("Number of Employees Indicator", min_value=4000.0, max_value=5300.0, value=5000.0)
-    emp_var_rate = st.slider("Employment Variation Rate", -4.0, 2.0, 0.0, 0.1)
-    cons_price_idx = st.slider("Consumer Price Index", 90.0, 100.0, 93.5, 0.1)
+    raw_education = st.selectbox("Education Level", options=[
+        'university.degree', 'high.school', 'professional.course', 
+        'basic.9y', 'basic.4y', 'basic.6y', 'unknown', 'illiterate'
+    ])
+    
+    raw_default = st.selectbox("Has Credit in Default?", options=['no', 'yes', 'unknown'])
 
-# 3. Handle Categorical One-Hot Encodings Natively via UI checkboxes
-st.subheader("📋 Campaign Context Flags")
-c1, c2, c3 = st.columns(3)
-with c1:
-    poutcome_success = st.checkbox("Previous campaign outcome was a Success")
-    marital_married = st.checkbox("Customer is Married")
-with c2:
-    previously_contacted = st.checkbox("Customer was previously contacted before")
-    job_group_white_collar = st.checkbox("Job: White Collar Professional")
-with c3:
-    contact_telephone = st.checkbox("Contact channel used: Landline Telephone")
-    default_unknown = st.checkbox("Credit default status is Unknown")
+st.header("📞 Campaign Engagement Details")
+col3, col4 = col4, col3 = st.columns(2)
 
-# 4. Construct the exact input row matching the training shape
-input_data = {feat: 0.0 for feat in feature_names}
+with col3:
+    raw_campaign = st.number_input("Number of Contacts in Current Campaign", min_value=1, max_value=100, value=1, step=1)
+    raw_previous = st.number_input("Number of Contacts Before This Campaign", min_value=0, max_value=10, value=0, step=1)
 
-# Map continuous sliders directly
-input_data['age_group'] = age_group
-input_data['education'] = education
-input_data['previous'] = previous
-input_data['pdays_cleaned'] = pdays_cleaned
-input_data['euribor3m'] = euribor3m
-input_data['nr_employed'] = nr_employed
-input_data['emp.var.rate'] = emp_var_rate
-input_data['cons.price.idx'] = cons_price_idx
+with col4:
+    raw_pdays = st.number_input("Days Since Last Contact (-1 or 999 if Never Contacted)", min_value=-1, max_value=999, value=999, step=1)
+    # Map raw pdays behavior back to match your 999 filter condition rules
+    if raw_pdays == -1:
+        raw_pdays = 999
 
-# Map binary fields based on user interactions
-input_data['poutcome_success'] = 1.0 if poutcome_success else 0.0
-input_data['marital_married'] = 1.0 if marital_married else 0.0
-input_data['previously_contacted'] = 1.0 if previously_contacted else 0.0
-input_data['job_group_white_collar'] = 1.0 if job_group_white_collar else 0.0
-input_data['contact_telephone'] = 1.0 if contact_telephone else 0.0
-input_data['default_unknown'] = 1.0 if default_unknown else 0.0
+    raw_contact = st.selectbox("Contact Communication Channel", options=['cellular', 'telephone'])
 
-# Convert input dictionary into a proper Pandas DataFrame row structure
-df_input = pd.DataFrame([input_data])
+st.header("📅 Timing Variables")
+col5, col6 = st.columns(2)
 
-# 5. Load the underlying XGBoost model object safely
+with col5:
+    raw_month = st.selectbox("Last Contact Month", options=['may', 'jul', 'aug', 'jun', 'nov', 'apr', 'oct', 'sep', 'mar', 'dec'])
+
+with col6:
+    raw_day_of_week = st.selectbox("Last Contact Day of the Week", options=['mon', 'tue', 'wed', 'thu', 'fri'])
+
+# 3. Macroeconomic Settings (Hidden inside an expander with preset standard dataset averages)
+with st.expander("📊 Advanced Macroeconomic Indicators (Auto-Calculated Defaults)"):
+    st.caption("These context indicators default to historical averages from the dataset so users don't have to provide them manually.")
+    emp_var_rate = st.number_input("Employment Variation Rate (Quarterly)", value=0.08)
+    cons_price_idx = st.number_input("Consumer Price Index (Monthly)", value=93.57)
+    cons_conf_idx = st.number_input("Consumer Confidence Index (Monthly)", value=-40.50)
+    euribor3m = st.number_input("Euribor 3-Month Interest Rate (Daily)", value=3.62)
+    nr_employed = st.number_input("Number of Employees Context Indicator", value=5167.0)
+
+# ==================== INTERNAL DATA PROCESSING & TRANSFORMATIONS ====================
+
+# A. Handle Custom Binning & Ordinal Mappings from your Training Script
+# Age Bins -> Mapped
+if raw_age <= 20: age_group_str = 'teenager'
+elif raw_age <= 35: age_group_str = 'young_adult'
+elif raw_age <= 50: age_group_str = 'adult'
+else: age_group_str = 'senior'
+age_group_val = {'teenager': 0, 'young_adult': 1, 'adult': 2, 'senior': 3}[age_group_str]
+
+# Campaign Bins -> Mapped
+if raw_campaign <= 1: campaign_tier_str = 'single_touch'
+elif raw_campaign <= 3: campaign_tier_str = 'standard_followup'
+elif raw_campaign <= 10: campaign_tier_str = 'high_intensity'
+else: campaign_tier_str = 'extreme_outlier'
+campaign_tier_val = {'single_touch': 0, 'standard_followup': 1, 'high_intensity': 2, 'extreme_outlier': 3}[campaign_tier_str]
+
+# Education Maps
+edu_group_map = {
+    'basic.4y': 'primary', 'basic.6y': 'primary', 'basic.9y': 'primary',
+    'high.school': 'secondary', 'professional.course': 'tertiary',
+    'university.degree': 'graduation', 'illiterate': 'illiterate', 'unknown': 'unknown'
+}
+edu_ordinal_map = {'illiterate': 0, 'primary': 1, 'secondary': 2, 'unknown': 2, 'graduation': 3, 'tertiary': 4}
+education_val = edu_ordinal_map[edu_group_map[raw_education]]
+
+# Job Mapping
+job_group_map = {
+    'admin.': 'white_collar', 'management': 'white_collar', 'entrepreneur': 'white_collar', 'self-employed': 'white_collar',
+    'technician': 'blue_collar', 'blue-collar': 'blue_collar', 'services': 'blue_collar', 'housemaid': 'blue_collar',
+    'retired': 'not_working', 'student': 'not_working', 'unemployed': 'not_working', 'unknown': 'not_working'
+}
+job_group_val = job_group_map[raw_job]
+
+# Month Tier Mapping
+month_tier_map = {
+    'may': 'high_vol_month', 'jul': 'high_vol_month', 'aug': 'mid_vol_month',
+    'jun': 'mid_vol_month', 'nov': 'mid_vol_month', 'apr': 'mid_vol_month',
+    'oct': 'low_vol_month', 'sep': 'low_vol_month', 'mar': 'low_vol_month', 'dec': 'low_vol_month'
+}
+month_tier_val = month_tier_map[raw_month]
+
+# Pdays cleaning rule
+previously_contacted = 1 if raw_pdays != 999 else 0
+pdays_cleaned = 0 if raw_pdays == 999 else raw_pdays
+
+# B. Internal Feature Dictionary Setup
+processed_features = {
+    'previous': float(raw_previous),
+    'previously_contacted': float(previously_contacted),
+    'pdays_cleaned': float(pdays_cleaned),
+    'age_group': float(age_group_val),
+    'campaign_tier': float(campaign_tier_val),
+    'education': float(education_val),
+    'emp.var.rate': float(emp_var_rate),
+    'cons.price.idx': float(cons_price_idx),
+    'cons.conf.idx': float(cons_conf_idx),
+    'euribor3m': float(euribor3m),
+    'nr.employed': float(nr_employed)
+}
+
+# C. Apply Hardcoded StandardScaler values (Extracted from the standard full training dataset distributions)
+scaler_stats = {
+    'emp.var.rate': {'mean': 0.081886, 'std': 1.570960},
+    'cons.price.idx': {'mean': 93.575664, 'std': 0.578840},
+    'cons.conf.idx': {'mean': -40.502600, 'std': 4.628198},
+    'euribor3m': {'mean': 3.621291, 'std': 1.734447},
+    'nr.employed': {'mean': 5167.035911, 'std': 72.251528},
+    'pdays_cleaned': {'mean': 0.221200, 'std': 1.378900} # Extracted standard cleaning variance
+}
+
+for col in scaler_stats:
+    processed_features[col] = (processed_features[col] - scaler_stats[col]['mean']) / scaler_stats[col]['std']
+
+# D. Reconstruct the exact Nominal One-Hot Encoded features generated via pd.get_dummies()
+nominal_selections = {
+    f"marital_{raw_marital}": 1,
+    f"default_{raw_default}": 1,
+    f"contact_{raw_contact}": 1,
+    f"day_of_week_{raw_day_of_week}": 1,
+    f"month_tier_{month_tier_val}": 1,
+    f"job_group_{job_group_val}": 1
+}
+
+# Combine and construct input row matching alignment array order
+final_input_row = {}
+for name in feature_names:
+    if name in processed_features:
+        final_input_row[name] = processed_features[name]
+    elif name in nominal_selections:
+        final_input_row[name] = float(nominal_selections[name])
+    else:
+        final_input_row[name] = 0.0
+
+df_input = pd.DataFrame([final_input_row])
+
+# 4. Model Engine Prediction Execute
 @st.cache_resource
 def load_xgb_model():
     model = xgb.Booster()
@@ -81,15 +178,16 @@ def load_xgb_model():
 
 xgb_engine = load_xgb_model()
 
-# 6. Execute live inference predictions
 if st.button("Calculate Subscription Probability", type="primary"):
+    # Ensure correct matching column evaluation alignment
+    df_input = df_input[feature_names]
     dmatrix_input = xgb.DMatrix(df_input)
     raw_probability = float(xgb_engine.predict(dmatrix_input)[0])
-    
+
+    st.subheader("Prediction Result")
     st.metric(label="Calculated Probability of Term Deposit Signup", value=f"{raw_probability * 100:.2f}%")
-    
-    # Establish dynamic baseline classification flag vs the target recall cutoff (0.40)
-    if raw_probability >= 0.40:
-        st.success("🎯 **Target Match:** High probability prospect. Recommended for active sales queue.")
+
+    if raw_probability >= 0.55:
+        st.success("🎯 **High Priority Prospect:** High conversion profile. Route immediately to active outbound call agents.")
     else:
-        st.warning("💤 **Low Probability Prospect:** Fallback to low-cost automated email campaign.")
+        st.warning("💤 **Low Priority Prospect:** Keep in nurture flow via automated low-cost channel campaigns.")
